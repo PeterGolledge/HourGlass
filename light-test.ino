@@ -4,6 +4,15 @@
 #define FADE_LED_MAX_LED  15
 #include <VariableTimedAction.h>
 #include <FadeLed.h>
+// Gyro requirement
+#include "Wire.h" // This library allows you to communicate with I2C devices.
+
+char tmp_str[7]; // temporary variable used in convert function
+char* convert_int16_to_str(int16_t i) { // converts int16 to string. Moreover, resulting strings will have the same length in the debug monitor.
+  sprintf(tmp_str, "%6d", i);
+  return tmp_str;
+}
+
 
 // FadeLed Arrays for Pin assignment in FadeLED, note #define above
 // FADE_LED_PWM_BITS for a Mega
@@ -37,6 +46,43 @@ bool myBotBarDone = true;
 int sensorPin = A0;   // select the input pin for the potentiometer
 int sensorValue = 0;  // variable to store the value coming from the sensor
 
+// MP 6050 code to wait for "flip"
+
+void GyroWait() {
+    // (c) Michael Schoeffler 2017, http://www.mschoeffler.de
+    
+    const int MPU_ADDR = 0x68; // I2C address of the MPU-6050. If AD0 pin is set to HIGH, the I2C address will be 0x69.
+    
+    int16_t accelerometer_x=-1; // variables for accelerometer raw data
+    
+    char tmp_str[7]; // temporary variable used in convert function
+    
+       
+    Wire.begin();
+    Wire.beginTransmission(MPU_ADDR); // Begins a transmission to the I2C slave (GY-521 board)
+    Wire.write(0x6B); // PWR_MGMT_1 register
+    Wire.write(0); // set to zero (wakes up the MPU-6050)
+    Wire.endTransmission(true);
+    
+    Serial.print("aX = "); Serial.print(convert_int16_to_str(accelerometer_x));
+    while (accelerometer_x < 0) {
+      Wire.beginTransmission(MPU_ADDR);
+      Wire.write(0x3B); // starting with register 0x3B (ACCEL_XOUT_H) [MPU-6000 and MPU-6050 Register Map and Descriptions Revision 4.2, p.40]
+      Wire.endTransmission(false); // the parameter indicates that the Arduino will send a restart. As a result, the connection is kept active.
+      Wire.requestFrom(MPU_ADDR, 7*2, true); // request a total of 7*2=14 registers
+    
+      // "Wire.read()<<8 | Wire.read();" means two registers are read and stored in the same variable
+      accelerometer_x = Wire.read()<<8 | Wire.read(); // reading registers: 0x3B (ACCEL_XOUT_H) and 0x3C (ACCEL_XOUT_L)
+    
+      // print out data
+      Serial.print("aX = "); Serial.print(convert_int16_to_str(accelerometer_x));
+      // delay
+      delay(1000);
+    }
+
+}
+
+
 // Setup NON PWM pins to output, FadeLed takes care of PWM
 void pinSetup() {
   int myPin = 0;
@@ -60,19 +106,19 @@ void barReset() {
   }
   FadeLed::update(); //updates all FadeLed objects
   // Let folk see lights for debug
-  delay(2000);
   // Set Bot / Waist off, set Top to 100%
   for (myPin = 0; myPin < 7; myPin = myPin + 1) {
     myBotPins[myPin].off();
   }
+  FadeLed::update(); //updates all FadeLed objects
   for (myPin = 0; myPin < 4; myPin = myPin + 1) {
     digitalWrite(myWaistPins[myPin], LOW);
   }
   for (myPin = 0; myPin < 7; myPin = myPin + 1) {
-    myTopPins[myPin].beginOn();
+    myTopPins[myPin].on();
   }
   FadeLed::update(); //updates all FadeLed objects
-  delay(2000);
+  delay(1000);
 }
 
 // Setup Time action for Waist LED
@@ -159,7 +205,7 @@ private:
         //}
         myTopBarDone = false;
         myBotBarDone = false;
-        myTopPins[myBarPin].set(0);
+        myTopPins[myBarPin].off();
         myTopPins[myBarPin].setTime(10000);
         myBotPins[myBarPin].on();
         myBotPins[myBarPin].setTime(10000);
@@ -236,10 +282,12 @@ void setup() {
   
 // Reset bar state  
   barReset();
+  // Wait for Flip of Hourglass
+  GyroWait();
     
   myWaist.start(100);
   // Start fixed 15 Sec delay, then will reset to whatever Potentiometer says * const
-  myBar.start(12000);
+  myBar.start(5000);
 }
 
 /////////////////////////////////////////////////////////////////////
