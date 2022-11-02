@@ -29,6 +29,9 @@ const unsigned long delta = 50;  // interval at which to blink (milliseconds)
 int myBarPin = 0;
 // Global Fade values
 bool myFading = true;
+// Fade flags, true to trigger first bar Fade
+bool myTopBarDone = true;
+bool myBotBarDone = true;
 
 // Pot for timing
 int sensorPin = A0;   // select the input pin for the potentiometer
@@ -55,6 +58,7 @@ void barReset() {
   for (myPin = 0; myPin < 7; myPin = myPin + 1) {
     myTopPins[myPin].beginOn();
   }
+  FadeLed::update(); //updates all FadeLed objects
   // Let folk see lights for debug
   delay(2000);
   // Set Bot / Waist off, set Top to 100%
@@ -67,6 +71,8 @@ void barReset() {
   for (myPin = 0; myPin < 7; myPin = myPin + 1) {
     myTopPins[myPin].beginOn();
   }
+  FadeLed::update(); //updates all FadeLed objects
+  delay(2000);
 }
 
 // Setup Time action for Waist LED
@@ -135,26 +141,29 @@ private:
     Serial.print("Bot Done: ");
     Serial.print(myBotPins[myBarPin].done());
     Serial.println();
-    //  analogWrite(myTopPins[myBarPin], myFading);
-    //  analogWrite(myBotPins[myBarPin], myBotFade);
     // Increment/Decrement Fade
-    
      
     // If we are not already fading start one
-    if ( myTopPins[myBarPin].done() && myBotPins[myBarPin].done() ) {
-      // Restart if we got to last bar
-      if ( myBarPin > 6 ) {
-        barReset();
-        myBarPin = 0;
-      }
-      // Start FadeLed fading
-      else {
-        myTopPins[myBarPin].off();
-        myTopPins[myBarPin].setTime(3000);
+    if ( myTopPins[myBarPin].done()) {
+        myTopBarDone = true;
+    }
+    if ( myBotPins[myBarPin].done() ) {
+        myBotBarDone = true;
+    } 
+    // If both Fades are done, reset flags increment Bar
+    if ( myTopBarDone && myBotBarDone ) {
+        // Restart if we got to last bar
+        //if ( myBarPin > 6 ) {
+        //    barReset();
+        //    myBarPin = 0;
+        //}
+        myTopBarDone = false;
+        myBotBarDone = false;
+        myTopPins[myBarPin].set(0);
+        myTopPins[myBarPin].setTime(10000);
         myBotPins[myBarPin].on();
-        myBotPins[myBarPin].setTime(3000);
+        myBotPins[myBarPin].setTime(10000);
         myBarPin++;
-      }
     }
     
     //return code of 0 indicates no change to the interval
@@ -170,6 +179,48 @@ public:
   }
 };
 
+void BarBlink2() {
+    //Timing value, will use this as delay multipler in milliseconds
+    // read the value from the sensor:
+    sensorValue = analogRead(sensorPin);
+    Serial.print("myBarPin: ");
+    Serial.print(myBarPin);
+    Serial.println();
+    Serial.print("Top Done: ");
+    Serial.print(myTopPins[myBarPin].done());
+    Serial.println();
+    Serial.print("Bot Done: ");
+    Serial.print(myBotPins[myBarPin].done());
+    Serial.println();
+    //  analogWrite(myTopPins[myBarPin], myFading);
+    //  analogWrite(myBotPins[myBarPin], myBotFade);
+    // Increment/Decrement Fade
+
+
+    // If we are not already fading start one
+    if ( myTopPins[myBarPin].done() && myBotPins[myBarPin].done() ) {
+      // Restart if we got to last bar
+//      if ( myBarPin > 6 ) {
+//        barReset();
+//        myBarPin = 0;
+//      }
+//      // Start FadeLed fading
+//      else {
+        myTopPins[myBarPin].off();
+        myTopPins[myBarPin].setTime(10000);
+        myBotPins[myBarPin].on();
+        myBotPins[myBarPin].setTime(10000);
+        myTopPins[myBarPin].off();
+        myTopPins[myBarPin].setTime(10000);
+        myBotPins[myBarPin].on();
+        myBotPins[myBarPin].setTime(10000);
+//        myBarPin++;
+//      }
+    }
+
+}
+/////////////////////////////////////////////////////////////////////
+
 // Timed event for Waist
 WaistBlink myWaist;
 // Timed event for Top and Bottom bars
@@ -177,21 +228,24 @@ BarBlink myBar;
 
 // Get everything ready and create the events
 void setup() {
+
   Serial.begin(9600); // open the serial port at 9600 bps
   // Prepare pins and light all LEDs
   pinSetup();
-  
+  FadeLed::setInterval(10);
   
 // Reset bar state  
   barReset();
     
   myWaist.start(100);
   // Start fixed 15 Sec delay, then will reset to whatever Potentiometer says * const
-//  myBar.start(1000);
+  myBar.start(12000);
 }
 
+/////////////////////////////////////////////////////////////////////
 void loop() {
-  FadeLed::update(); //updates all FadeLed objects
   // Run timed events
-  VariableTimedAction::updateActions();
+  FadeLed::update(); //updates all FadeLed objects
+  VariableTimedAction::updateActions(); //Waist stuff
+//  BarBlink2();
 }
