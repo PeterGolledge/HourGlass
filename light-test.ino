@@ -43,7 +43,7 @@ bool myTopBarDone = true;
 bool myBotBarDone = true;
 
 // Pot for timing
-int sensorPin = A0;   // select the input pin for the potentiometer
+int sensorPin = A1;   // select the input pin for the potentiometer
 int sensorValue = 0;  // variable to store the value coming from the sensor
 
 // MP 6050 code to wait for "flip"
@@ -91,7 +91,7 @@ void pinSetup() {
   }
   
 }
-// Light everything for H/W debug and then blank bottom pins
+// Light everything for H/W debug and then blank all pins
 void barReset() {
   int myPin = 0;
   // Turn on all Pins for debug
@@ -106,6 +106,10 @@ void barReset() {
   }
   FadeLed::update(); //updates all FadeLed objects
   // Let folk see lights for debug
+  delay(2000);
+}
+void barTopOn() {
+  int myPin = 0;
   // Set Bot / Waist off, set Top to 100%
   for (myPin = 0; myPin < 7; myPin = myPin + 1) {
     myBotPins[myPin].off();
@@ -114,11 +118,12 @@ void barReset() {
   for (myPin = 0; myPin < 4; myPin = myPin + 1) {
     digitalWrite(myWaistPins[myPin], LOW);
   }
-  for (myPin = 0; myPin < 7; myPin = myPin + 1) {
-    myTopPins[myPin].on();
-  }
+ // for (myPin = 0; myPin < 7; myPin = myPin + 1) {
+ //   myTopPins[myPin].off();
+ // }
+  delay(2000);
   FadeLed::update(); //updates all FadeLed objects
-  delay(1000);
+  
 }
 
 // Setup Time action for Waist LED
@@ -178,14 +183,8 @@ private:
     //Timing value, will use this as delay multipler in milliseconds
     // read the value from the sensor:
     sensorValue = analogRead(sensorPin);
-    Serial.print("myBarPin: ");
-    Serial.print(myBarPin);
-    Serial.println();
-    Serial.print("Top Done: ");
-    Serial.print(myTopPins[myBarPin].done());
-    Serial.println();
-    Serial.print("Bot Done: ");
-    Serial.print(myBotPins[myBarPin].done());
+    Serial.print("Pot value: ");
+    Serial.print(sensorPin);
     Serial.println();
     // Increment/Decrement Fade
      
@@ -206,9 +205,9 @@ private:
         myTopBarDone = false;
         myBotBarDone = false;
         myTopPins[myBarPin].off();
-        myTopPins[myBarPin].setTime(10000);
+        myTopPins[myBarPin].setTime(25000);
         myBotPins[myBarPin].on();
-        myBotPins[myBarPin].setTime(10000);
+        myBotPins[myBarPin].setTime(25000);
         myBarPin++;
     }
     
@@ -225,46 +224,6 @@ public:
   }
 };
 
-void BarBlink2() {
-    //Timing value, will use this as delay multipler in milliseconds
-    // read the value from the sensor:
-    sensorValue = analogRead(sensorPin);
-    Serial.print("myBarPin: ");
-    Serial.print(myBarPin);
-    Serial.println();
-    Serial.print("Top Done: ");
-    Serial.print(myTopPins[myBarPin].done());
-    Serial.println();
-    Serial.print("Bot Done: ");
-    Serial.print(myBotPins[myBarPin].done());
-    Serial.println();
-    //  analogWrite(myTopPins[myBarPin], myFading);
-    //  analogWrite(myBotPins[myBarPin], myBotFade);
-    // Increment/Decrement Fade
-
-
-    // If we are not already fading start one
-    if ( myTopPins[myBarPin].done() && myBotPins[myBarPin].done() ) {
-      // Restart if we got to last bar
-//      if ( myBarPin > 6 ) {
-//        barReset();
-//        myBarPin = 0;
-//      }
-//      // Start FadeLed fading
-//      else {
-        myTopPins[myBarPin].off();
-        myTopPins[myBarPin].setTime(10000);
-        myBotPins[myBarPin].on();
-        myBotPins[myBarPin].setTime(10000);
-        myTopPins[myBarPin].off();
-        myTopPins[myBarPin].setTime(10000);
-        myBotPins[myBarPin].on();
-        myBotPins[myBarPin].setTime(10000);
-//        myBarPin++;
-//      }
-    }
-
-}
 /////////////////////////////////////////////////////////////////////
 
 // Timed event for Waist
@@ -282,12 +241,15 @@ void setup() {
   
 // Reset bar state  
   barReset();
+  FadeLed::update();
+  barTopOn();
+  FadeLed::update();
   // Wait for Flip of Hourglass
   GyroWait();
     
   myWaist.start(100);
   // Start fixed 15 Sec delay, then will reset to whatever Potentiometer says * const
-  myBar.start(5000);
+  myBar.start(30000);
 }
 
 /////////////////////////////////////////////////////////////////////
