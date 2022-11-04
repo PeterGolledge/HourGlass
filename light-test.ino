@@ -99,11 +99,11 @@ void GyroWait() {
     
       // "Wire.read()<<8 | Wire.read();" means two registers are read and stored in the same variable
       accelerometer_x = Wire.read()<<8 | Wire.read(); // reading registers: 0x3B (ACCEL_XOUT_H) and 0x3C (ACCEL_XOUT_L)
-      if ( accelerometer_x < -550 && accelerometer_x > -700 ){ enoughSamples++; }
+      if ( accelerometer_x < -450 && accelerometer_x > -750 ){ enoughSamples++; }
       // print out data
       Serial.print("2aX = "); Serial.print(convert_int16_to_str(accelerometer_x));
       // delay
-      delay(500);
+      delay(200);
     }
 
 }
