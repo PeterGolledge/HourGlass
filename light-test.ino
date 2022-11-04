@@ -9,7 +9,7 @@
 
 char tmp_str[7]; // temporary variable used in convert function
 char* convert_int16_to_str(int16_t i) { // converts int16 to string. Moreover, resulting strings will have the same length in the debug monitor.
-  sprintf(tmp_str, "%6d", i);
+  sprintf(tmp_str, "%6d\n", i);
   return tmp_str;
 }
 
@@ -50,7 +50,9 @@ int sensorValue = 0;  // variable to store the value coming from the sensor
 
 void GyroWait() {
     // (c) Michael Schoeffler 2017, http://www.mschoeffler.de
+    // Reads X axis on Gyro and waits until X settles on -(600->700) for 3 samples
     
+    int enoughSamples = 0;
     const int MPU_ADDR = 0x68; // I2C address of the MPU-6050. If AD0 pin is set to HIGH, the I2C address will be 0x69.
     
     int16_t accelerometer_x=-1; // variables for accelerometer raw data
@@ -65,7 +67,7 @@ void GyroWait() {
     Wire.endTransmission(true);
     
     Serial.print("aX = "); Serial.print(convert_int16_to_str(accelerometer_x));
-    while (accelerometer_x < 0) {
+    while (enoughSamples < 4) {
       Wire.beginTransmission(MPU_ADDR);
       Wire.write(0x3B); // starting with register 0x3B (ACCEL_XOUT_H) [MPU-6000 and MPU-6050 Register Map and Descriptions Revision 4.2, p.40]
       Wire.endTransmission(false); // the parameter indicates that the Arduino will send a restart. As a result, the connection is kept active.
@@ -73,11 +75,11 @@ void GyroWait() {
     
       // "Wire.read()<<8 | Wire.read();" means two registers are read and stored in the same variable
       accelerometer_x = Wire.read()<<8 | Wire.read(); // reading registers: 0x3B (ACCEL_XOUT_H) and 0x3C (ACCEL_XOUT_L)
-    
+      if ( accelerometer_x < -550 && accelerometer_x > -700 ){ enoughSamples++; }
       // print out data
       Serial.print("aX = "); Serial.print(convert_int16_to_str(accelerometer_x));
       // delay
-      delay(1000);
+      delay(500);
     }
 
 }
