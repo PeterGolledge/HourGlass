@@ -19,6 +19,7 @@ char* convert_int16_to_str(int16_t i) { // converts int16 to string. Moreover, r
 
 FadeLed myBotPins[] = { 2, 3, 4, 9, 6, 7, 8 };
 FadeLed myTopPins[] = { 46, 45, 44, 10, 11, 13, 12 };
+int DirectTopPins[] = { 46, 45, 44, 10, 11, 13, 12 };
 
 // Regular array for Waist leds, these are non PWM
 int myWaistPins[] = { 30, 31, 32, 33 };
@@ -100,7 +101,7 @@ void GyroWait() {
       accelerometer_x = Wire.read()<<8 | Wire.read(); // reading registers: 0x3B (ACCEL_XOUT_H) and 0x3C (ACCEL_XOUT_L)
       if ( accelerometer_x < -550 && accelerometer_x > -700 ){ enoughSamples++; }
       // print out data
-      Serial.print("aX = "); Serial.print(convert_int16_to_str(accelerometer_x));
+      Serial.print("2aX = "); Serial.print(convert_int16_to_str(accelerometer_x));
       // delay
       delay(500);
     }
@@ -143,13 +144,12 @@ void barTopOn() {
   for (myPin = 0; myPin < 4; myPin = myPin + 1) {
     digitalWrite(myWaistPins[myPin], LOW);
   }
- // for (myPin = 0; myPin < 7; myPin = myPin + 1) {
- //   myTopPins[myPin].off();
- // }
-  delay(2000);
+  for (myPin = 0; myPin < 7; myPin = myPin + 1) {
+    analogWrite(DirectTopPins[myPin],255);
+    myTopPins[myPin].on();
+  }
   FadeLed::update(); //updates all FadeLed objects
-  
-}
+   }
 
 // Setup Time action for Waist LED
 
@@ -265,7 +265,7 @@ void setup() {
   FadeLed::setInterval(10);
   
 // Reset bar state  
-  barReset();
+//  barReset();
   //barTopOn();
   FadeLed::update();
   // Wait for Flip of Hourglass
