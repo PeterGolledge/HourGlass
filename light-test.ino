@@ -50,6 +50,9 @@ int sensorValue = 0;  // variable to store the value coming from the sensor
 
 void GyroWait() {
     // (c) Michael Schoeffler 2017, http://www.mschoeffler.de
+    // Part 1:  Wait for pickup
+    // Looks for 4 X asix samples < 1000 or > 3000 then lights lower bars
+    // Part 2:  Wait for invesion
     // Reads X axis on Gyro and waits until X settles on -(600->700) for 3 samples
     
     int enoughSamples = 0;
@@ -65,9 +68,29 @@ void GyroWait() {
     Wire.write(0x6B); // PWR_MGMT_1 register
     Wire.write(0); // set to zero (wakes up the MPU-6050)
     Wire.endTransmission(true);
+
+    // Wait for Pickup sample signal
+    while ( enoughSamples <= 4) {
+      Wire.beginTransmission(MPU_ADDR);
+      Wire.write(0x3B); // starting with register 0x3B (ACCEL_XOUT_H) [MPU-6000 and MPU-6050 Register Map and Descriptions Revision 4.2, p.40]
+      Wire.endTransmission(false); // the parameter indicates that the Arduino will send a restart. As a result, the connection is kept active.
+      Wire.requestFrom(MPU_ADDR, 7*2, true); // request a total of 7*2=14 registers
     
-    Serial.print("aX = "); Serial.print(convert_int16_to_str(accelerometer_x));
-    while (enoughSamples < 4) {
+      // "Wire.read()<<8 | Wire.read();" means two registers are read and stored in the same variable
+      accelerometer_x = Wire.read()<<8 | Wire.read(); // reading registers: 0x3B (ACCEL_XOUT_H) and 0x3C (ACCEL_XOUT_L)
+      if ( accelerometer_x < -1000 || accelerometer_x > 3000 ){ enoughSamples++; }
+      // print out data
+      Serial.print("aX = "); Serial.print(convert_int16_to_str(accelerometer_x));
+      // delay
+      delay(500);
+    }
+    // Reset counter, light the lower lights
+    enoughSamples = 0;
+    // Light the lower lights (we are upside down right now)
+    barTopOn();
+
+    // Wait for Inversion sample signal
+    while ( enoughSamples <= 4) {
       Wire.beginTransmission(MPU_ADDR);
       Wire.write(0x3B); // starting with register 0x3B (ACCEL_XOUT_H) [MPU-6000 and MPU-6050 Register Map and Descriptions Revision 4.2, p.40]
       Wire.endTransmission(false); // the parameter indicates that the Arduino will send a restart. As a result, the connection is kept active.
@@ -243,8 +266,7 @@ void setup() {
   
 // Reset bar state  
   barReset();
-  FadeLed::update();
-  barTopOn();
+  //barTopOn();
   FadeLed::update();
   // Wait for Flip of Hourglass
   GyroWait();
